@@ -1,0 +1,59 @@
+FICHES DE RÉVISION — MISE EN LIGNE GRATUITE (0 €)
+==================================================
+
+Contenu du dossier
+  index.html            le site (avec l'écran de connexion)
+  auth.js               connexion + sauvegarde de la progression et des post-its
+  firebase-config.js    À REMPLIR avec la configuration de ton projet Firebase
+  regles-firestore.txt  règles de sécurité à coller dans Firebase
+  pdf/                  les PDF téléchargeables
+
+Deux services gratuits, sans carte bancaire :
+  - Firebase (Google) : comptes + sauvegarde (offre « Spark » gratuite)
+  - GitHub Pages      : hébergement du site
+
+---------------------------------------------------------------
+1. CRÉER LE PROJET FIREBASE
+   - Va sur https://console.firebase.google.com (compte Google).
+   - « Créer un projet » > nom au choix (ex. fiches-ieseg) > Google Analytics : désactivé.
+
+2. ACTIVER LA CONNEXION PAR MOT DE PASSE
+   - Menu Créer (Build) > Authentication > Commencer.
+   - Onglet « Sign-in method » > « Adresse e-mail/Mot de passe » > Activer > Enregistrer.
+   (Les élèves ne donnent jamais d'e-mail : le site fabrique une adresse fictive
+    à partir du nom d'utilisateur, aucun e-mail n'est envoyé.)
+
+3. CRÉER LA BASE DE DONNÉES
+   - Menu Créer (Build) > Firestore Database > Créer une base de données.
+   - Emplacement : europe-west (ex. eur3 ou europe-west9 Paris) > mode production.
+   - Onglet « Règles » : remplace tout par le contenu de regles-firestore.txt > Publier.
+
+4. RÉCUPÉRER LA CONFIGURATION
+   - Roue dentée > Paramètres du projet > « Vos applications » > icône Web </>.
+   - Nom de l'appli au choix, NE PAS cocher Firebase Hosting > Enregistrer.
+   - Copie les valeurs (apiKey, authDomain, projectId…) dans firebase-config.js.
+
+5. METTRE LE SITE EN LIGNE (GitHub Pages)
+   - Crée un compte sur https://github.com (gratuit).
+   - « New repository » > nom (ex. fiches) > Public > Create.
+   - « uploading an existing file » > glisse TOUT le contenu du dossier
+     (index.html, auth.js, firebase-config.js, le dossier pdf…) > Commit changes.
+   - Settings > Pages > Source : « Deploy from a branch » > Branch : main, / (root) > Save.
+   - Après 1 à 2 minutes, ton site est en ligne :
+       https://TON-PSEUDO-GITHUB.github.io/fiches/
+
+6. AUTORISER TON ADRESSE DANS FIREBASE
+   - Authentication > Settings (Paramètres) > Domaines autorisés > Ajouter un domaine :
+       TON-PSEUDO-GITHUB.github.io
+
+---------------------------------------------------------------
+À SAVOIR
+  - Mot de passe : 6 caractères minimum. Sans e-mail, pas de « mot de passe oublié » :
+    si un élève l'oublie, supprime son compte dans Authentication > Users ; il en recrée un
+    (sa progression repart de zéro).
+  - Limites gratuites largement suffisantes pour une promo : 50 000 lectures et
+    20 000 écritures de sauvegarde par jour. Au-delà, la sauvegarde s'arrête jusqu'au
+    lendemain : rien n'est facturé tant que tu restes sur l'offre gratuite « Spark ».
+  - Pour modifier le site plus tard : remplace les fichiers dans le dépôt GitHub.
+  - Les clés de firebase-config.js ne sont pas secrètes : chaque compte ne peut lire
+    que ses propres données grâce aux règles de l'étape 3.
