@@ -6,6 +6,7 @@ Contenu du dossier
   auth.js               connexion + sauvegarde de la progression et des post-its
   firebase-config.js    À REMPLIR avec la configuration de ton projet Firebase
   regles-firestore.txt  règles de sécurité à coller dans Firebase
+  extras.js / extras.css annonces, calendrier, tickets et centre admin
   pdf/                  les PDF téléchargeables
 
 Deux services gratuits, sans carte bancaire :
@@ -57,3 +58,14 @@ Deux services gratuits, sans carte bancaire :
   - Pour modifier le site plus tard : remplace les fichiers dans le dépôt GitHub.
   - Les clés de firebase-config.js ne sont pas secrètes : chaque compte ne peut lire
     que ses propres données grâce aux règles de l'étape 3.
+
+---------------------------------------------------------------
+CENTRE ADMIN (annonces, calendrier, tickets)
+  - Le compte administrateur est le nom d'utilisateur « mat ». Connecté avec ce
+    compte, tu vois un badge « Admin » et le lien « Centre admin » dans le menu.
+  - Ce que tu publies (annonces, dates) apparaît en direct chez tout le monde,
+    sans republier le site.
+  - Les droits sont vérifiés par Firebase (regles-firestore.txt) : même en
+    bricolant la page, un autre compte ne peut pas publier.
+  - Pour changer de compte admin : remplace « mat » dans regles-firestore.txt
+    (republie les règles) ET dans auth.js (const ADMIN).

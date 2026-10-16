@@ -441,6 +441,7 @@ html.locked .shell{display:none}
 .acct-out{border:0;background:none;color:var(--accent);font-weight:600;cursor:pointer;padding:0;margin-left:auto;font-size:13px}
 .mnav .acct{padding:0 0 12px;margin-bottom:12px}
 </style>
+<link rel="stylesheet" href="extras.css">
 </head><body>
 <div id="gate" data-state="loading"><div class="g-card">
 <div class="eyebrow">IÉSEG · Révisions</div><h1>Fiches de révision</h1>
@@ -3171,12 +3172,12 @@ document.addEventListener('click',e=>{const b=e.target.closest('button.st[data-c
 },true);
 function buildSide(cur){
   const open=S.get('hub-open',{}); const curC=cur&&ALL.find(x=>x.ch.id===cur);
-  side.innerHTML='<a class="homelink" href="#accueil"'+(cur?'':' aria-current="page"')+'><span class="dot" style="background:var(--c-home)"></span>Accueil</a>'+M.courses.map(c=>{
+  side.innerHTML='<a class="homelink" href="#accueil"'+(cur?'':' aria-current="page"')+'><span class="dot" style="background:var(--c-home)"></span>Accueil</a>'+(window.EXTRA?EXTRA.nav(cur):'')+M.courses.map(c=>{
     const isOpen=open[c.id]!==false||(curC&&curC.c.id===c.id);
     return '<details class="grp" data-c="'+c.id+'"'+(isOpen?' open':'')+'><summary><span class="dot" style="background:var(--c-'+c.accent+')"></span>'+esc(c.name)+'<span class="chev">▶</span></summary><ol>'+c.chapters.map(ch=>'<li>'+stBtn(ch.id)+'<a href="#'+ch.id+'"'+(ch.id===cur?' aria-current="page"':'')+'><span class="n">'+esc(ch.num)+'</span><span>'+esc(ch.title)+'</span></a></li>').join('')+'</ol></details>'}).join('');
   side.querySelectorAll('details').forEach(d=>d.addEventListener('toggle',()=>{const o=S.get('hub-open',{});o[d.dataset.c]=d.open;S.set('hub-open',o)}));
   const sel=document.querySelector('.mnav select');
-  sel.innerHTML='<option value="accueil">Accueil · tous les cours</option>'+M.courses.map(c=>'<optgroup label="'+esc(c.name)+'">'+c.chapters.map(ch=>'<option value="'+ch.id+'"'+(ch.id===cur?' selected':'')+'>'+esc(ch.label+' · '+ch.title)+'</option>').join('')+'</optgroup>').join('');
+  sel.innerHTML='<option value="accueil">Accueil · tous les cours</option>'+(window.EXTRA?EXTRA.opts(cur):'')+M.courses.map(c=>'<optgroup label="'+esc(c.name)+'">'+c.chapters.map(ch=>'<option value="'+ch.id+'"'+(ch.id===cur?' selected':'')+'>'+esc(ch.label+' · '+ch.title)+'</option>').join('')+'</optgroup>').join('');
   sel.onchange=()=>{location.hash=sel.value};
 }
 function home(){
@@ -3185,7 +3186,7 @@ function home(){
   const last=S.get('hub-last',null), lastC=last&&ALL.find(x=>x.ch.id===last);
   main.innerHTML='<div class="hero"><div class="eyebrow">IÉSEG · Révisions</div><h1>Fiches de révision</h1><p class="lede">Toutes tes matières au même endroit, rangées par cours puis par chapitre. Chaque chapitre garde sa synthèse, ses schémas, ses outils interactifs, ses corrigés et ses flashcards, avec plusieurs séries de QCM pour s’entraîner. Chaque matière se termine par des QCM finaux (examens blancs).</p>'+
    '<div class="stats"><span><b>'+M.courses.length+'</b>cours</span><span><b>'+nch+'</b>chapitres</span><span><b>'+nfc+'</b>flashcards</span><span><b>'+nq+'</b>questions de QCM</span><span><b>'+nser+'</b>séries d’entraînement</span><span><b>'+nfin+'</b>examens blancs</span><span><b>'+known+'</b>cartes maîtrisées</span></div>'+
-   (lastC?'<a class="resume" href="#'+lastC.ch.id+'">Reprendre : '+esc(lastC.ch.label+' · '+lastC.ch.title)+' →</a>':'')+'</div>'+
+   (lastC?'<a class="resume" href="#'+lastC.ch.id+'">Reprendre : '+esc(lastC.ch.label+' · '+lastC.ch.title)+' →</a>':'')+'</div>'+(window.EXTRA?EXTRA.home():'')+
    '<p class="st-legend">Clique sur le rond d’un chapitre pour indiquer où tu en es :'+ST.slice(1).concat(ST[0]).map(x=>'<span><button type="button" class="st" data-st="'+x.k+'" tabindex="-1" aria-hidden="true"><i></i></button>'+x.l+'</span>').join('')+'</p><div class="courses">'+M.courses.map(c=>'<section class="ccard" style="--cc:var(--c-'+c.accent+')"><header><h2>'+esc(c.name)+'</h2><span>'+c.chapters.filter(x=>!x.final).length+' '+esc(c.unit.toLowerCase())+(c.chapters.filter(x=>!x.final).length>1?'s':'')+(c.teacher?' · '+esc(c.teacher):'')+'</span></header><ol class="chlist">'+c.chapters.map(ch=>{const p=prog(ch.id);return '<li>'+stBtn(ch.id)+'<a href="#'+ch.id+'"><span class="lab">'+esc(ch.label)+'</span><span class="ti">'+esc(ch.title)+'</span><span class="pr"><span>'+(ch.final?p.done+' / '+p.ns+' examens faits'+(p.pct!==null?' · '+p.pct+' %':''):p.k+' / '+p.fc+' cartes · QCM '+p.done+'/'+p.ns+(p.pct!==null?' · '+p.pct+' %':''))+'</span><span class="bar"><i style="width:'+(ch.final?(p.ns?p.done/p.ns*100:0):(p.fc?p.k/p.fc*100:0))+'%"></i></span></span></a></li>'}).join('')+'</ol></section>').join('')+'</div>'+
    '<p class="howto">La progression (cartes maîtrisées, séries de QCM faites et pourcentage moyen de tes meilleurs scores) est enregistrée sur ton compte : tu la retrouves sur n’importe quel appareil. Les encadrés « Complément » signalent ce qui ne vient pas des diapositives ; les corrigés sont des propositions sauf mention contraire.</p>';
   buildSide(null); window.scrollTo(0,0);
@@ -3260,11 +3261,12 @@ async function hubDL(kind,btn){
   finally{btn.disabled=false;btn.innerHTML=old}
 }
 document.addEventListener('click',e=>{const b=e.target.closest('[data-dl]'); if(b) hubDL(b.dataset.dl,b)});
-function route(){const h=(location.hash||'').slice(1); if(!h||h==='accueil') home(); else chapter(h);}
+function route(){const h=(location.hash||'').slice(1); if(window.EXTRA){EXTRA.reset(h); if(EXTRA.routes[h]) return EXTRA.routes[h]();} if(!h||h==='accueil') home(); else chapter(h);}
 /* Démarré par auth.js une fois la progression du compte chargée */
 window.__appStart=function(){NOTES.reload();if(!window.__appStarted){window.__appStarted=true;window.addEventListener('hashchange',route)}route()};
 
 </script>
+<script src="extras.js"></script>
 <script src="firebase-config.js"></script>
 <script type="module" src="auth.js"></script>
 </body></html>

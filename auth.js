@@ -5,10 +5,12 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, deleteField, serverTimestamp }
+import { getFirestore, doc, getDoc, setDoc, deleteField, serverTimestamp,
+  collection, addDoc, updateDoc, deleteDoc, onSnapshot, query, where }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const DOMAIN = "fiches-ieseg.example.com";      // adresse fictive : aucun e-mail n'est jamais envoyé
+const ADMIN = "mat";                              // compte administrateur (doit correspondre aux règles Firestore)
 const SYNCED = /^(fiche-|hub-)/;
 const $ = s => document.querySelector(s);
 const gate = $("#gate"), form = $("#gate-form"), msg = $("#gate-msg"), btn = $("#gate-submit");
@@ -99,6 +101,10 @@ if (!cfg || !cfg.apiKey || String(cfg.apiKey).startsWith("COLLE")) {
       document.querySelectorAll(".acct-name").forEach(el => el.textContent = name);
       document.documentElement.classList.remove("locked");
       gate.dataset.state = "off";
+      /* Accès aux données partagées (annonces, calendrier, tickets) pour extras.js */
+      window.FB = { db, uid: user.uid, name, isAdmin: name === ADMIN,
+        fs: { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, query, where } };
+      window.__extrasStart && window.__extrasStart();
       window.__appStart && window.__appStart();
     } catch (err) {
       showGate("error", "Impossible de charger ta progression (" + (err.code || err.message) + "). Vérifie ta connexion puis recharge la page.");

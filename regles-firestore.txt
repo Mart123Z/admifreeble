@@ -1,9 +1,35 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Chaque compte ne peut lire et écrire que sa propre progression.
+
+    function signedIn() { return request.auth != null; }
+    // Compte administrateur : le nom d'utilisateur « mat ».
+    function isAdmin() { return signedIn() && request.auth.token.email == 'mat@fiches-ieseg.example.com'; }
+
+    // Progression, statuts et post-its : chaque compte ne voit que les siens.
     match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
+    // Annonces et calendrier : lisibles par tous les connectés, modifiables par l'admin seulement.
+    match /announcements/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+    match /events/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    // Tickets : chacun crée et lit les siens ; l'admin lit tout, répond et supprime.
+    match /tickets/{id} {
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == 'ouvert'
+        && request.resource.data.subject is string && request.resource.data.subject.size() <= 120
+        && request.resource.data.body is string && request.resource.data.body.size() <= 4000;
+      allow read: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow update, delete: if isAdmin();
     }
   }
 }
