@@ -21,6 +21,15 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Présence (compteur « en ligne ») : chacun ne peut écrire que sa propre heure de passage,
+    // fixée par le serveur ; tous les connectés peuvent compter.
+    match /presence/{uid} {
+      allow read: if signedIn();
+      allow create, update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['ts']) && request.resource.data.ts == request.time;
+      allow delete: if signedIn() && request.auth.uid == uid;
+    }
+
     // Tickets : chacun crée et lit les siens ; l'admin lit tout, répond et supprime.
     match /tickets/{id} {
       allow create: if signedIn()
