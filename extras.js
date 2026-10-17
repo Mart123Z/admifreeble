@@ -305,50 +305,11 @@
     reset(h) { view = h && h !== "accueil" ? h : "home"; LIVE = []; },
     nav: navLinks, opts, home
   };
-  /* ---------- Utilisateurs en ligne ----------
-     Chaque compte connecté écrit presence/{uid} = { ts: heure du serveur } toutes les 90 s
-     tant que la page est visible ; le compteur interroge le nombre de comptes actifs
-     depuis 3 min (requête de comptage : une seule lecture facturée). */
-  const BEAT = 90000, WINDOW = 180000, POLL = 60000;
-  let offset = 0, beatT = null, pollT = null, presRef = null, presOn = false;
-  function showOnline(n) {
-    document.querySelectorAll(".acct-online").forEach(el => {
-      if (n == null) { el.hidden = true; return; }
-      el.hidden = false; el.querySelector(".acct-on-n").textContent = n + (n > 1 ? " personnes en ligne" : " personne en ligne");
-    });
-  }
-  async function beat(first) {
-    const F = FB.fs;
-    await F.setDoc(presRef, { ts: F.serverTimestamp() });
-    if (first) { const snap = await F.getDoc(presRef); const ts = snap.exists() && snap.data().ts; if (ts && ts.toMillis) offset = ts.toMillis() - Date.now(); }
-  }
-  async function count() {
-    const F = FB.fs;
-    const cutoff = F.Timestamp.fromMillis(Date.now() + offset - WINDOW);
-    const snap = await F.getCountFromServer(F.query(F.collection(FB.db, "presence"), F.where("ts", ">", cutoff)));
-    showOnline(Math.max(1, snap.data().count));
-  }
-  async function presenceStart() {
-    if (presOn || document.visibilityState === "hidden") return;
-    presOn = true;
-    try { await beat(true); await count(); }
-    catch (e) { presOn = false; showOnline(null); return; }     /* règles pas encore publiées : on masque l'indicateur */
-    beatT = setInterval(() => beat(false).catch(() => {}), BEAT);
-    pollT = setInterval(() => count().catch(() => {}), POLL);
-  }
-  function presenceStop() { presOn = false; clearInterval(beatT); clearInterval(pollT); }
-  window.__presenceOff = async () => { presenceStop(); if (presRef) await FB.fs.deleteDoc(presRef); };
-  document.addEventListener("visibilitychange", () => {
-    if (!window.FB || !presRef) return;
-    if (document.visibilityState === "visible") presenceStart(); else presenceStop();
-  });
-
   window.__extrasStart = function () {
     const { db, fs, uid } = FB;
     const sub = (k, q) => fs.onSnapshot(q,
       snap => { D[k] = snap.docs.map(d => Object.assign({ id: d.id }, d.data())); D.st[k] = "ok"; refresh(k); },
       err => { D.st[k] = err && err.code === "permission-denied" ? "denied" : "error"; refresh(k); });
-    presRef = fs.doc(db, "presence", uid); presenceStart();
     sub("ann", fs.collection(db, "announcements"));
     sub("ev", fs.collection(db, "events"));
     sub("tk", FB.isAdmin ? fs.collection(db, "tickets") : fs.query(fs.collection(db, "tickets"), fs.where("uid", "==", uid)));

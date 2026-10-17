@@ -6,7 +6,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, deleteField, serverTimestamp,
-  collection, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, getCountFromServer, Timestamp }
+  collection, addDoc, updateDoc, deleteDoc, onSnapshot, query, where }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const DOMAIN = "fiches-ieseg.example.com";      // adresse fictive : aucun e-mail n'est jamais envoyé
@@ -103,7 +103,7 @@ if (!cfg || !cfg.apiKey || String(cfg.apiKey).startsWith("COLLE")) {
       gate.dataset.state = "off";
       /* Accès aux données partagées (annonces, calendrier, tickets) pour extras.js */
       window.FB = { db, uid: user.uid, name, isAdmin: name === ADMIN,
-        fs: { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, getCountFromServer, Timestamp, setDoc, getDoc, serverTimestamp } };
+        fs: { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, query, where } };
       window.__extrasStart && window.__extrasStart();
       window.__appStart && window.__appStart();
     } catch (err) {
@@ -115,7 +115,6 @@ if (!cfg || !cfg.apiKey || String(cfg.apiKey).startsWith("COLLE")) {
   document.addEventListener("click", async e => {
     if (!e.target.closest(".acct-out")) return;
     await flush();
-    try { window.__presenceOff && await window.__presenceOff(); } catch (e) {}
     await signOut(auth);
     location.replace(location.pathname);
   });
