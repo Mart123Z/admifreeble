@@ -78,7 +78,7 @@
   }
   function page(id, title, html) {
     document.documentElement.dataset.course = "home";
-    document.title = title + " · Fiches de révision";
+    document.title = title + " · Admifreeble";
     main.innerHTML = '<div class="xpage">' + html + "</div>";
     buildSide(id);
     window.scrollTo(0, 0);
