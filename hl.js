@@ -85,7 +85,7 @@
       el.addEventListener("mousedown", e => e.preventDefault());
       el.addEventListener("pointerdown", e => {
         e.preventDefault();
-        if (e.pointerType === "mouse" || e.pointerType === "pen") { lastDown = Date.now(); act(e.target); }
+        if (e.pointerType === "mouse" || e.pointerType === "pen") { lastDown = Date.now(); act(e.target, true); }
       });
     });
   }
@@ -148,7 +148,7 @@
     const a = NOTES.get(CUR); a.unshift(note); NOTES.put(CUR, a);
     window.getSelection().removeAllRanges(); hideBar();
     renderNotes(CUR);
-    if (inWin) openWin(id, rect); else openNote(id, true);
+    if (inWin) openWinLater(id, rect, inWin === "later"); else openNote(id, true);
   }
   function setColor(id, c) {
     const a = NOTES.get(CUR), n = a.find(x => x.id === id); if (!n || !n.hl) return;
@@ -183,16 +183,26 @@
   }
 
   /* Action d'un bouton de la barre (nouveau surlignage) ou du menu (passage existant) */
-  function act(t) {
+  /* Safari (Mac) retire le focus au relâchement du clic : quand l'action part de l'appui,
+     la fenêtre s'ouvre seulement une fois le bouton de la souris relâché. */
+  function openWinLater(id, rect, viaDown) {
+    if (!viaDown) return openWin(id, rect);
+    let done = false;
+    const go = () => { if (done) return; done = true; document.removeEventListener("pointerup", up, true); setTimeout(() => openWin(id, rect), 0); };
+    const up = () => go();
+    document.addEventListener("pointerup", up, true);
+    setTimeout(go, 700);
+  }
+  function act(t, viaDown) {
     if (bar && t.closest(".hl-bar") === bar) {
       const b = t.closest("[data-new]"); if (b) { lastColor = b.dataset.new; create(lastColor); }
-      else if (t.closest("[data-newnote]")) create(lastColor, true);
+      else if (t.closest("[data-newnote]")) create(lastColor, viaDown ? "later" : true);
       return true;
     }
     if (pop && t.closest(".hl-pop") === pop) {
       const id = pop.dataset.id, b = t.closest("button"); if (!b) return true;
       if (b.dataset.set) setColor(id, b.dataset.set);
-      else if (b.hasAttribute("data-open")) { const m = main.querySelector('mark.hl[data-hl="' + id + '"]'); openWin(id, m && m.getBoundingClientRect()); }
+      else if (b.hasAttribute("data-open")) { const m = main.querySelector('mark.hl[data-hl="' + id + '"]'); openWinLater(id, m && m.getBoundingClientRect(), viaDown); }
       else if (b.hasAttribute("data-side")) openNote(id, true);
       else if (b.hasAttribute("data-del")) remove(id);
       hidePop(); return true;
@@ -241,6 +251,10 @@
       else if (t.closest(".hlw-q")) gotoMark(winId);
       else if (t.closest(".hlw-del")) { const id = winId; closeWin(); remove(id); }
     });
+    win.addEventListener("pointerup", e => {
+      if (e.target.closest("button,textarea") || win.classList.contains("drag")) return;
+      const ta2 = win.querySelector("textarea"); setTimeout(() => ta2.focus({ preventScroll: true }), 0);
+    });
     win.addEventListener("keydown", e => { if (e.key === "Escape") { e.stopPropagation(); closeWin(); } });
     /* glisser-déposer par l'en-tête (souris et doigt) */
     const head = win.querySelector(".hlw-h"); let drag = null;
@@ -277,7 +291,7 @@
     else moveWin(vw - w - 24, 90);
     flash(win);
     const ta = win.querySelector("textarea"), focus = () => { if (win.hidden) return; ta.focus({ preventScroll: true }); ta.setSelectionRange(ta.value.length, ta.value.length); };
-    focus(); setTimeout(focus, 60); setTimeout(focus, 250);   /* après le relâchement du clic */
+    focus(); setTimeout(focus, 60); setTimeout(focus, 250);
   }
   function closeWin() { if (win) win.hidden = true; winId = null; }
   /* saisie dans « Mes notes » → fenêtre ouverte sur la même note */
