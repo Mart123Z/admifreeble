@@ -129,7 +129,7 @@
   function pAnnonces() {
     S.set("hub-ann-seen", Date.now());
     const f = part(() => D.st.ann === "ok" && D.ann.length ? annSorted().map(a => annCard(a, true)).join("") : stateBox("ann", "Aucune annonce pour l’instant."));
-    page("annonces", "Annonces", '<div class="eyebrow">IÉSEG · Révisions</div><h1>Annonces</h1><p class="lede">Les infos importantes de la promo, mises à jour en direct.</p>' + live("xp-ann", ["ann"], f));
+    page("annonces", "Annonces", '<div class="eyebrow">Révisions</div><h1>Annonces</h1><p class="lede">Les infos importantes de la promo, mises à jour en direct.</p>' + live("xp-ann", ["ann"], f));
     setTimeout(() => S.set("hub-ann-seen", Date.now()), 0);
   }
   function pCalendrier() {
@@ -146,14 +146,14 @@
         grid(y, m, false) + legend() + side +
         '<h3 class="xh3">Ce mois-ci</h3>' + (D.st.ev === "ok" ? (month.length ? '<ul class="evl">' + month.map(e => evItem(e, true)).join("") + "</ul>" : '<p class="x-empty">Aucune date ce mois-ci.</p>') : stateBox("ev", ""));
     });
-    page("calendrier", "Calendrier", '<div class="eyebrow">IÉSEG · Révisions</div><h1>Calendrier</h1><p class="lede">Examens, rendus et dates clés. Clique sur un jour pour voir le détail.</p>' + live("xp-cal", ["ev"], f));
+    page("calendrier", "Calendrier", '<div class="eyebrow">Révisions</div><h1>Calendrier</h1><p class="lede">Examens, rendus et dates clés. Clique sur un jour pour voir le détail.</p>' + live("xp-cal", ["ev"], f));
   }
   function pTickets() {
     const f = part(() => {
       if (D.st.tk !== "ok" || !D.tk.length) return stateBox("tk", "Tu n’as encore envoyé aucun ticket.");
       return D.tk.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0)).map(t => tkCard(t, false)).join("");
     });
-    page("tickets", "Tickets", '<div class="eyebrow">IÉSEG · Révisions</div><h1>Tickets</h1><p class="lede">Un bug, une erreur dans une fiche, une idée ? Écris-nous : la réponse s’affichera ici.</p>' +
+    page("tickets", "Tickets", '<div class="eyebrow">Révisions</div><h1>Tickets</h1><p class="lede">Un bug, une erreur dans une fiche, une idée ? Écris-nous : la réponse s’affichera ici.</p>' +
       '<form class="xform" id="tk-form"><div class="row"><label>Catégorie<select name="cat">' + CATS.map(c => "<option>" + c + "</option>").join("") + '</select></label>' +
       '<label class="grow">Sujet<input name="subject" maxlength="120" required placeholder="En quelques mots"></label></div>' +
       '<label>Message<textarea name="body" rows="5" maxlength="4000" required placeholder="Décris le problème ou ton idée. Si c’est une erreur, indique le chapitre et l’onglet."></textarea></label>' +

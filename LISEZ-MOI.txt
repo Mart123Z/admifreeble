@@ -16,7 +16,7 @@ Deux services gratuits, sans carte bancaire :
 ---------------------------------------------------------------
 1. CRÉER LE PROJET FIREBASE
    - Va sur https://console.firebase.google.com (compte Google).
-   - « Créer un projet » > nom au choix (ex. fiches-ieseg) > Google Analytics : désactivé.
+   - « Créer un projet » > nom au choix (ex. fiches-revision) > Google Analytics : désactivé.
 
 2. ACTIVER LA CONNEXION PAR MOT DE PASSE
    - Menu Créer (Build) > Authentication > Commencer.
