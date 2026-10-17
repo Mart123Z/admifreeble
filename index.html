@@ -4040,6 +4040,7 @@ function init(id){
   else if(id==='flash') renderFlash(p);
   else if(id==='qcm') renderQuiz(p);
   else {const t=D.extraTabs.find(x=>x.id===id); t.render(p,{h,$,shuffle,store,renderSort})}
+  if(window.HL) HL.attach(p,id);
 }
 
 /* ---------- Fiche de révision ---------- */
@@ -4266,7 +4267,7 @@ function fmtD(ts){try{return new Date(ts).toLocaleDateString('fr-FR',{day:'numer
 function renderNotes(id,focusFirst){
   const box=main.querySelector('.nlist'); if(!box) return; const arr=NOTES.get(id);
   const cnt=main.querySelector('.tonotes'); if(cnt) cnt.textContent='Mes notes'+(arr.length?' ('+arr.length+')':'')+' ↓';
-  box.innerHTML=arr.length?arr.map((n,k)=>'<div class="pi" data-k="'+k+'"><textarea rows="3" aria-label="Note" placeholder="Écris ta note…">'+esc(n.t)+'</textarea><div class="pi-f"><span>'+fmtD(n.ts)+'</span><button type="button" class="pi-del" aria-label="Supprimer la note" title="Supprimer">×</button></div></div>').join(''):'<p class="nempty">Aucune note pour ce chapitre. Ajoute un post-it pour garder une question, un exemple du prof ou un point à revoir.</p>';
+  box.innerHTML=arr.length?arr.map((n,k)=>'<div class="pi'+(n.hl?' pi-hl':'')+'" data-k="'+k+'"'+(n.hl?' data-note="'+esc(n.id)+'" data-c="'+esc(n.hl.c)+'"':'')+'>'+(n.hl&&window.HL?HL.head(n):'')+'<textarea rows="3" aria-label="Note" placeholder="'+(n.hl?'Ta note sur ce passage…':'Écris ta note…')+'">'+esc(n.t)+'</textarea><div class="pi-f"><span>'+fmtD(n.ts)+'</span><button type="button" class="pi-del" aria-label="Supprimer la note" title="Supprimer">×</button></div></div>').join(''):'<p class="nempty">Aucune note pour ce chapitre. Ajoute un post-it pour garder une question, un exemple du prof ou un point à revoir. Tu peux aussi sélectionner un passage de la synthèse ou de la fiche pour le surligner.</p>';
   box.querySelectorAll('.pi').forEach(el=>{const k=+el.dataset.k, ta=el.querySelector('textarea');
     const grow=()=>{ta.style.height='auto';ta.style.height=ta.scrollHeight+'px'}; grow();
     ta.addEventListener('input',()=>{grow();const a=NOTES.get(id);if(a[k]){a[k].t=ta.value;a[k].ts=Date.now();NOTES.put(id,a)}});
@@ -4274,6 +4275,7 @@ function renderNotes(id,focusFirst){
   });
   if(focusFirst){const t=box.querySelector('textarea');if(t)t.focus()}
   status(false);
+  if(window.HL) HL.refresh();
 }
 function status(showUndo){const st=main.querySelector('.nstat'); if(!st) return;
   const base='Notes enregistrées sur ton compte.';
@@ -4302,6 +4304,7 @@ window.__appStart=function(){NOTES.reload();if(!window.__appStarted){window.__ap
 
 </script>
 <script src="extras.js"></script>
+<script src="hl.js"></script>
 <script src="firebase-config.js"></script>
 <script type="module" src="auth.js"></script>
 </body></html>
