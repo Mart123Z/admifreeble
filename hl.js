@@ -7,7 +7,7 @@
   const COLORS = [["jaune", "Jaune"], ["vert", "Vert"], ["bleu", "Bleu"], ["rose", "Rose"], ["orange", "Orange"]];
   const TABS = { synthese: { sel: "#prose", label: "Synthèse" }, fiche: { sel: ".ess-sheet", label: "Fiche" } };
   const SKIP = ".toolbar,style,script,.hl-bar";
-  let bar = null, pop = null, pending = null;
+  let bar = null, pop = null, pending = null, lastDown = 0;
 
   /* ---------- Texte et positions ---------- */
   function texts(root) {
@@ -77,7 +77,15 @@
     bar.innerHTML = '<span class="hl-l">Surligner</span>' + swatches(null, "data-new");
     pop = document.createElement("div"); pop.className = "hl-bar hl-pop"; pop.hidden = true; pop.setAttribute("role", "toolbar");
     document.body.append(bar, pop);
-    [bar, pop].forEach(el => el.addEventListener("mousedown", e => e.preventDefault()));
+    /* Safari (Mac) efface la sélection au moment du clic : avec la souris, on agit dès
+       l'appui (pointerdown), avant que la sélection ne disparaisse. Au doigt, on garde le clic. */
+    [bar, pop].forEach(el => {
+      el.addEventListener("mousedown", e => e.preventDefault());
+      el.addEventListener("pointerdown", e => {
+        e.preventDefault();
+        if (e.pointerType === "mouse" || e.pointerType === "pen") { lastDown = Date.now(); act(e.target); }
+      });
+    });
   }
   function place(el, rect) {
     el.hidden = false;
@@ -126,6 +134,8 @@
     }, 180);
   }
   document.addEventListener("selectionchange", onSelect);
+  document.addEventListener("mouseup", onSelect);   /* filet de sécurité pour Safari (Mac) */
+  document.addEventListener("keyup", e => { if (e.shiftKey || e.key === "Shift") onSelect(); });
 
   /* ---------- Actions ---------- */
   function create(color) {
@@ -169,16 +179,21 @@
     place(pop, m.getBoundingClientRect());
   }
 
+  /* Action d'un bouton de la barre (nouveau surlignage) ou du menu (passage existant) */
+  function act(t) {
+    if (bar && t.closest(".hl-bar") === bar) { const b = t.closest("[data-new]"); if (b) create(b.dataset.new); return true; }
+    if (pop && t.closest(".hl-pop") === pop) {
+      const id = pop.dataset.id, b = t.closest("button"); if (!b) return true;
+      if (b.dataset.set) setColor(id, b.dataset.set);
+      else if (b.hasAttribute("data-open")) openNote(id, true);
+      else if (b.hasAttribute("data-del")) remove(id);
+      hidePop(); return true;
+    }
+    return false;
+  }
   document.addEventListener("click", e => {
     const t = e.target;
-    if (bar && !bar.hidden && t.closest(".hl-bar") === bar) { const b = t.closest("[data-new]"); if (b) create(b.dataset.new); return; }
-    if (pop && !pop.hidden && t.closest(".hl-pop")) {
-      const id = pop.dataset.id;
-      if (t.closest("[data-set]")) setColor(id, t.closest("[data-set]").dataset.set);
-      else if (t.closest("[data-open]")) openNote(id, true);
-      else if (t.closest("[data-del]")) remove(id);
-      hidePop(); return;
-    }
+    if (t.closest(".hl-bar")) { if (Date.now() - lastDown > 700) act(t); return; }
     const m = t.closest("mark.hl");
     if (m && !(t.closest("mark.k") && t.closest(".hide-keys")) && !(window.getSelection() && !window.getSelection().isCollapsed)) { e.preventDefault(); showPop(m); return; }
     const q = t.closest(".pi-q"); if (q) { gotoMark(q.closest(".pi").dataset.note); return; }
