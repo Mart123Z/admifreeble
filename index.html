@@ -451,9 +451,9 @@ body{margin:0}
 .bk-t b{font-weight:600}.bk-t span{color:var(--muted);font-size:12.5px}
 .bk-a{flex:none;text-decoration:none;color:var(--ink);padding:7px 14px;font-size:13.5px}
 /* ---------- Statut des chapitres (coché par l'utilisateur) ---------- */
-:root{--st-none:#A7B0BD;--st-todo:#2F6FD6;--st-doing:#E0A800;--st-done:#23704A}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--st-none:#5B6574;--st-todo:#7AA7F0;--st-doing:#F2C94C;--st-done:#62C690}}
-:root[data-theme="dark"]{--st-none:#5B6574;--st-todo:#7AA7F0;--st-doing:#F2C94C;--st-done:#62C690}
+:root{--st-none:#A7B0BD;--st-todo:#2F6FD6;--st-doing:#E0A800;--st-done:#23704A;--st-redo:#7A4BD6}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--st-none:#5B6574;--st-todo:#7AA7F0;--st-doing:#F2C94C;--st-done:#62C690;--st-redo:#B49BFF}}
+:root[data-theme="dark"]{--st-none:#5B6574;--st-todo:#7AA7F0;--st-doing:#F2C94C;--st-done:#62C690;--st-redo:#B49BFF}
 button.st{flex:none;display:inline-flex;align-items:center;gap:7px;border:0;background:none;padding:4px;margin:0;border-radius:999px;cursor:pointer;color:var(--muted);font-size:12.5px;font-weight:600;line-height:1}
 button.st:hover{background:var(--paper)}
 button.st i{position:relative;display:block;width:18px;height:18px;border-radius:50%;border:2px solid var(--st-none);box-sizing:border-box;transition:background .15s,border-color .15s}
@@ -462,6 +462,9 @@ button.st[data-st="todo"] i::after{content:"";position:absolute;inset:3px;border
 button.st[data-st="doing"] i{border-color:var(--st-doing);background:linear-gradient(90deg,var(--st-doing) 50%,transparent 50%)}
 button.st[data-st="done"] i{border-color:var(--st-done);background:var(--st-done)}
 button.st[data-st="done"] i::after{content:"";position:absolute;left:4.5px;top:1.5px;width:4px;height:8px;border:solid var(--surface);border-width:0 2px 2px 0;transform:rotate(45deg)}
+button.st[data-st="redo"] i{border-color:var(--st-redo);background:var(--st-redo)}
+button.st[data-st="redo"] i::after{content:"";position:absolute;inset:2px;background:var(--surface);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19.5 12a7.5 7.5 0 1 1-2.2-5.3'/%3E%3Cpath d='M19.8 3.8v4.6h-4.6'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M19.5 12a7.5 7.5 0 1 1-2.2-5.3'/%3E%3Cpath d='M19.8 3.8v4.6h-4.6'/%3E%3C/svg%3E") center/contain no-repeat}
+button.st[data-st="redo"]{color:var(--st-redo)}
 button.st[data-st="todo"]{color:var(--st-todo)}button.st[data-st="doing"]{color:var(--ink)}button.st[data-st="done"]{color:var(--st-done)}
 .side ol li{display:flex;align-items:flex-start;gap:0}
 .side ol li>button.st{margin-top:3px}
@@ -4191,7 +4194,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const side=document.querySelector('.side nav'), main=document.querySelector('.view');
 function prog(id){const m=META[id];const k=S.get('fiche-'+m.fid+'-known',[]).length;let done=0,pts=0,tot=0;(m.series||[]).forEach(s=>{const b=S.get('fiche-'+m.fid+'-'+s.key,null);if(b!==null){done++;pts+=b;tot+=s.n}});return {k,fc:m.fc,done,ns:(m.series||[]).length,pct:tot?Math.round(pts/tot*100):null,q:m.q}}
 /* ---------- Statut des chapitres : seul l'utilisateur le change (gris → bleu → jaune → vert) ---------- */
-const ST=[{k:'',l:'Pas de statut'},{k:'todo',l:'À faire'},{k:'doing',l:'En cours'},{k:'done',l:'Complété'}];
+const ST=[{k:'',l:'Pas de statut'},{k:'todo',l:'À faire'},{k:'doing',l:'En cours'},{k:'done',l:'Complété'},{k:'redo',l:'À repasser'}];
 function stGet(id){const o=S.get('hub-status',{});return (o&&o[id])||''}
 function stInfo(k){return ST.find(x=>x.k===k)||ST[0]}
 function stTitle(k){return 'Statut : '+stInfo(k).l+' (clique pour changer)'}
