@@ -6,7 +6,7 @@
 (function () {
   const COLORS = [["jaune", "Jaune"], ["vert", "Vert"], ["bleu", "Bleu"], ["rose", "Rose"], ["orange", "Orange"]];
   const TABS = { synthese: { sel: "#prose", label: "Synthèse" }, fiche: { sel: ".ess-sheet", label: "Fiche" } };
-  const SKIP = ".toolbar,style,script,.hl-bar";
+  const SKIP = ".toolbar,style,script,.hl-bar,.memo-pill";
   let bar = null, pop = null, pending = null, lastDown = 0, win = null, winId = null, lastColor = "jaune";
   const EYE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.1A9.8 9.8 0 0 1 12 5c5 0 9 4.5 10 7-.4 1-1.2 2.3-2.4 3.5M6.6 6.6C4.5 8 3.2 10 2 12c1 2.5 5 7 10 7 1.9 0 3.6-.6 5-1.5"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
   const NOTE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v11l-5 5H5z"/><path d="M14 20v-5h5"/></svg>';
@@ -103,6 +103,25 @@
   }
   function showUbPop(u, rect) { showMaskPop({ ub: u }, rect, false); }
 
+  /* ---------- Case « Masquer les mots-clés » qui suit la lecture ----------
+     Une pastille collée en bas de l'écran apparaît quand la barre de la synthèse
+     n'est plus visible ; elle pilote la vraie case. */
+  function memoPill(root, tb) {
+    const cb = root.querySelector("#hideKeys"); if (!cb || !tb || root.querySelector(".memo-pill")) return;
+    root.insertAdjacentHTML("beforeend", '<div class="memo-pill" aria-hidden="true"><label><input type="checkbox" class="memo-cb" tabindex="-1"><span>Masquer les mots-clés</span></label></div>');
+    const pill = root.querySelector(".memo-pill"), pcb = pill.querySelector(".memo-cb");
+    const sync = () => { pcb.checked = cb.checked; pill.classList.toggle("on", cb.checked); };
+    sync();
+    cb.addEventListener("change", sync);
+    pcb.addEventListener("change", () => { cb.checked = pcb.checked; cb.dispatchEvent(new Event("change")); });
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(([en]) => {
+        const show = !en.isIntersecting && en.boundingClientRect.top < 0;   /* barre passée au-dessus */
+        pill.classList.toggle("show", show); pill.setAttribute("aria-hidden", show ? "false" : "true"); pcb.tabIndex = show ? 0 : -1;
+      }).observe(tb);
+    }
+  }
+
   /* ---------- Application sur les onglets ---------- */
   function roots() {
     const out = [];
@@ -121,6 +140,7 @@
         const tb = root.querySelector(".toolbar");
         if (tb && !tb.querySelector(".ub-reset")) tb.insertAdjacentHTML("beforeend", '<button type="button" class="ub-reset" hidden>Réinitialiser les mots masqués</button>');
         const rb = tb && tb.querySelector(".ub-reset"); if (rb) rb.hidden = !(blurs().length || K.length);
+        memoPill(root, tb);
       }
       if (tab === "synthese") blurs().forEach(b => { const at = locate(txt, b); if (at) wrapWith(root, at[0], at[1], () => {
         const m = document.createElement("mark"); m.className = "ub"; m.dataset.ub = b.id;
