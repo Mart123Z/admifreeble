@@ -182,3 +182,6 @@ mark.ub{background:none;color:inherit;border-bottom:2px dotted var(--accent);cur
 .hide-keys mark.ub.shown{filter:none;background:none;border-bottom:2px dotted var(--accent);border-radius:0}
 .hl-act svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .hl-bar [hidden]{display:none}
+.hide-keys mark.k.kept{filter:none;background:none;user-select:auto}
+.ub-reset{border:0;background:none;color:var(--accent);font:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:3px}
+.ub-reset[hidden]{display:none}

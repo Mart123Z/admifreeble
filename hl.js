@@ -68,8 +68,14 @@
     let s0 = pending.s, e0 = pending.e;
     while (s0 > 0 && W.test(txt[s0 - 1])) s0--;
     while (e0 < txt.length && W.test(txt[e0])) e0++;
+    let covered = 0;
+    root[1].querySelectorAll("mark.k.kept").forEach(k => {
+      const r = document.createRange(); r.selectNodeContents(root[1]); r.setEndBefore(k);
+      const ks = rangeLen(root[1], r), ke = ks + k.textContent.length;
+      if (ks < e0 && ke > s0) { unkeepSilent(kIndex(k)); covered += Math.min(ke, e0) - Math.max(ks, s0); }
+    });
     const arr = blurs();
-    if (!arr.some(x => x.s === s0 && x.e === e0))
+    if (covered < txt.slice(s0, e0).replace(/\s+/g, "").length - 1 && !arr.some(x => x.s === s0 && x.e === e0))
       arr.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), s: s0, e: e0, q: txt.slice(s0, e0) });
     saveBlurs(arr);
     window.getSelection().removeAllRanges(); hideBar();
@@ -78,12 +84,24 @@
     refresh();
   }
   function removeBlur(id) { saveBlurs(blurs().filter(b => b.id !== id)); refresh(); }
-  function showUbPop(u, rect) {
+  /* hub-unblur = { chapitre: [ { i, q } ] } : mots-clés du cours (i-ème mark.k de la synthèse,
+     texte q) que l'utilisateur ne veut plus voir floutés */
+  const UKEY = "hub-unblur";
+  const kept = () => { const o = S.get(UKEY, {}) || {}; return (CUR && o[CUR]) || []; };
+  function saveKept(a) { const o = S.get(UKEY, {}) || {}; if (a.length) o[CUR] = a; else delete o[CUR]; S.set(UKEY, o); }
+  const kIndex = k => [...main.querySelectorAll("#prose mark.k")].indexOf(k);
+  const isKept = (i, k) => kept().some(x => x.i === i && x.q === k.textContent);
+  function keep(i, q) { const a = kept(); if (!a.some(x => x.i === i)) a.push({ i, q }); saveKept(a); refresh(); }
+  function unkeepSilent(i) { saveKept(kept().filter(x => x.i !== i)); }
+  function unkeep(i) { saveKept(kept().filter(x => x.i !== i)); const k = main.querySelectorAll("#prose mark.k")[i]; if (k) k.classList.remove("shown"); refresh(); }
+  function showMaskPop(ref, rect, isKeptNow) {
     ensureUI(); hideBar();
-    pop.dataset.id = ""; pop.dataset.ub = u;
-    pop.innerHTML = '<button type="button" class="hl-act" data-unblur>' + EYE_ICON + 'Ne plus masquer</button>';
+    pop.dataset.id = ""; pop.dataset.ub = ref.ub || ""; pop.dataset.k = ref.k != null ? ref.k : ""; pop.dataset.kq = ref.q || "";
+    pop.innerHTML = isKeptNow ? '<button type="button" class="hl-act" data-remask>' + EYE_ICON + 'Masquer à nouveau</button>'
+                              : '<button type="button" class="hl-act" data-unblur>' + EYE_ICON + 'Ne plus masquer</button>';
     place(pop, rect);
   }
+  function showUbPop(u, rect) { showMaskPop({ ub: u }, rect, false); }
 
   /* ---------- Application sur les onglets ---------- */
   function roots() {
@@ -97,6 +115,13 @@
     roots().forEach(([tab, root]) => {
       unwrap(root);
       const txt = fullText(root);
+      if (tab === "synthese") {
+        const K = kept();
+        root.querySelectorAll("mark.k").forEach((m, i) => { const kp = K.some(x => x.i === i && x.q === m.textContent); m.classList.toggle("kept", kp); if (kp) m.classList.remove("shown"); });
+        const tb = root.querySelector(".toolbar");
+        if (tb && !tb.querySelector(".ub-reset")) tb.insertAdjacentHTML("beforeend", '<button type="button" class="ub-reset" hidden>Réinitialiser les mots masqués</button>');
+        const rb = tb && tb.querySelector(".ub-reset"); if (rb) rb.hidden = !(blurs().length || K.length);
+      }
       if (tab === "synthese") blurs().forEach(b => { const at = locate(txt, b); if (at) wrapWith(root, at[0], at[1], () => {
         const m = document.createElement("mark"); m.className = "ub"; m.dataset.ub = b.id;
         m.title = "Mot masqué par toi · en mode mémoire, clique pour le révéler"; return m; }); });
@@ -220,7 +245,7 @@
   function showPop(m, ub) {
     ensureUI(); hideBar();
     const id = m.dataset.hl, n = NOTES.get(CUR).find(x => x.id === id); if (!n) return;
-    pop.dataset.id = id; pop.dataset.ub = ub || "";
+    pop.dataset.id = id; pop.dataset.ub = ub || ""; pop.dataset.k = "";
     pop.innerHTML = swatches(n.hl.c, "data-set") + '<span class="hl-sep"></span><button type="button" class="hl-act hl-note" data-open>' + NOTE_ICON + (n.t ? "Ouvrir la note" : "Écrire une note") + '</button><button type="button" class="hl-act" data-side title="Voir dans Mes notes">Mes notes</button><button type="button" class="hl-act del" data-del>Retirer</button>' + (ub ? '<span class="hl-sep"></span><button type="button" class="hl-act" data-unblur>' + EYE_ICON + 'Ne plus masquer</button>' : "");
     place(pop, m.getBoundingClientRect());
   }
@@ -245,7 +270,8 @@
     }
     if (pop && t.closest(".hl-pop") === pop) {
       const id = pop.dataset.id, b = t.closest("button"); if (!b) return true;
-      if (b.hasAttribute("data-unblur")) removeBlur(pop.dataset.ub);
+      if (b.hasAttribute("data-unblur")) { if (pop.dataset.k !== "" && pop.dataset.k != null) keep(+pop.dataset.k, pop.dataset.kq); else removeBlur(pop.dataset.ub); }
+      else if (b.hasAttribute("data-remask")) unkeep(+pop.dataset.k);
       else if (b.dataset.set) setColor(id, b.dataset.set);
       else if (b.hasAttribute("data-open")) { const m = main.querySelector('mark.hl[data-hl="' + id + '"]'); openWinLater(id, m && m.getBoundingClientRect(), viaDown); }
       else if (b.hasAttribute("data-side")) openNote(id, true);
@@ -257,11 +283,27 @@
   document.addEventListener("click", e => {
     const t = e.target;
     if (t.closest(".hl-bar")) { if (Date.now() - lastDown > 700) act(t); return; }
-    const u = t.closest("mark.ub"), selOn = window.getSelection() && !window.getSelection().isCollapsed;
+    const rs = t.closest(".ub-reset");
+    if (rs) {                                  /* réinitialiser (2 clics pour confirmer) */
+      if (!rs.dataset.sure) { rs.dataset.sure = 1; rs.textContent = "Confirmer la réinitialisation ?"; setTimeout(() => { if (rs.isConnected) { delete rs.dataset.sure; rs.textContent = "Réinitialiser les mots masqués"; } }, 3500); return; }
+      saveBlurs([]); saveKept([]); refresh(); return;
+    }
+    const u = t.closest("mark.ub"), k = t.closest("#prose mark.k"), selOn = window.getSelection() && !window.getSelection().isCollapsed;
+    if (k && !u && !selOn) {                   /* mot-clé du cours */
+      const i = kIndex(k), kp = isKept(i, k), hide = !!k.closest(".hide-keys");
+      if (kp) k.classList.remove("shown");     /* un mot gardé n'a pas besoin d'être « révélé » */
+      if (hide && !kp) {                       /* le script du cours vient de le révéler / reflouter */
+        if (k.classList.contains("shown")) showMaskPop({ k: i, q: k.textContent }, k.getBoundingClientRect(), false); else hidePop();
+        return;
+      }
+      if (!t.closest("mark.hl")) { showMaskPop({ k: i, q: k.textContent }, k.getBoundingClientRect(), kp); return; }
+    }
     if (u && !selOn) {
       if (u.closest(".hide-keys")) {           /* mode mémoire : un clic révèle / refloute */
         e.preventDefault(); const on = !u.classList.contains("shown");
-        main.querySelectorAll('mark.ub[data-ub="' + u.dataset.ub + '"]').forEach(x => x.classList.toggle("shown", on)); hidePop(); return;
+        main.querySelectorAll('mark.ub[data-ub="' + u.dataset.ub + '"]').forEach(x => x.classList.toggle("shown", on));
+        if (on) showMaskPop({ ub: u.dataset.ub }, u.getBoundingClientRect(), false); else hidePop();
+        return;
       }
       if (!t.closest("mark.hl")) { e.preventDefault(); showUbPop(u.dataset.ub, u.getBoundingClientRect()); return; }
     }
