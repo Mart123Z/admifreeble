@@ -108,16 +108,23 @@
      n'est plus visible ; elle pilote la vraie case. */
   function memoPill(root, tb) {
     const cb = root.querySelector("#hideKeys"); if (!cb || !tb || root.querySelector(".memo-pill")) return;
-    root.insertAdjacentHTML("beforeend", '<div class="memo-pill" aria-hidden="true"><label><input type="checkbox" class="memo-cb" tabindex="-1"><span>Masquer les mots-clés</span></label></div>');
-    const pill = root.querySelector(".memo-pill"), pcb = pill.querySelector(".memo-cb");
-    const sync = () => { pcb.checked = cb.checked; pill.classList.toggle("on", cb.checked); };
+    /* grand écran : sous le sommaire (colonne de gauche, fixe) */
+    const toc = root.closest(".synth") && root.closest(".synth").querySelector(".toc");
+    if (toc && !toc.querySelector(".toc-memo"))
+      toc.insertAdjacentHTML("beforeend", '<label class="toc-memo"><input type="checkbox" class="memo-cb"><span>Masquer les mots-clés</span></label>');
+    /* écran plus étroit : petit bouton rond dans le coin, quand la barre du haut est passée */
+    root.insertAdjacentHTML("beforeend", '<div class="memo-pill" aria-hidden="true"><label title="Masquer les mots-clés"><input type="checkbox" class="memo-cb" tabindex="-1" aria-label="Masquer les mots-clés">' + EYE_ICON + '</label></div>');
+    const pill = root.querySelector(".memo-pill");
+    const boxes = () => [...document.querySelectorAll(".memo-cb")].filter(x => x.closest("#p-synthese"));
+    const sync = () => { boxes().forEach(x => x.checked = cb.checked); pill.classList.toggle("on", cb.checked); };
     sync();
     cb.addEventListener("change", sync);
-    pcb.addEventListener("change", () => { cb.checked = pcb.checked; cb.dispatchEvent(new Event("change")); });
+    boxes().forEach(x => x.addEventListener("change", () => { cb.checked = x.checked; cb.dispatchEvent(new Event("change")); }));
     if ("IntersectionObserver" in window) {
       new IntersectionObserver(([en]) => {
         const show = !en.isIntersecting && en.boundingClientRect.top < 0;   /* barre passée au-dessus */
-        pill.classList.toggle("show", show); pill.setAttribute("aria-hidden", show ? "false" : "true"); pcb.tabIndex = show ? 0 : -1;
+        pill.classList.toggle("show", show); pill.setAttribute("aria-hidden", show ? "false" : "true");
+        pill.querySelector("input").tabIndex = show ? 0 : -1;
       }).observe(tb);
     }
   }
