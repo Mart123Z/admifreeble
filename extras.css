@@ -198,3 +198,48 @@ mark.ub{background:none;color:inherit;border-bottom:2px dotted var(--accent);cur
 .memo-pill.on label{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 @media (min-width:1421px){.memo-pill{display:none}}
 @media (prefers-reduced-motion:reduce){.memo-pill{transition:none}}
+/* ---------- Flashcards : exclure, ajouter, tableau ---------- */
+.fc-meterbox{display:flex;gap:10px;align-items:center;flex:1;justify-content:flex-end;min-width:200px}
+#fcStat{font-size:13px;color:var(--muted);font-family:var(--f-mono);white-space:nowrap}
+.fc-addb{padding:8px 14px;font-size:13.5px}
+.seg button svg{vertical-align:-2px}
+.btn svg{vertical-align:-3px;margin-right:2px}
+.fc-form{display:grid;gap:12px;max-width:680px;margin:0 auto 20px;padding:18px 20px;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.fc-form[hidden]{display:none}
+.fc-form h3{font-size:19px;margin:0}
+.fc-form label{display:grid;gap:5px;font-size:13.5px;font-weight:600}
+.fc-form label small{font-weight:400;color:var(--muted)}
+.fc-form input,.fc-form textarea{font:inherit;font-weight:400;font-size:15px;padding:9px 11px;border-radius:10px;border:1px solid var(--line);background:var(--paper);color:var(--ink);resize:vertical;width:100%}
+.fc-fbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
+.fc-fmsg{font-size:13.5px;color:var(--bad)}
+.fc-exnote{text-align:center;font-size:13.5px;color:var(--muted);margin:14px 0 0;min-height:1em}
+.linkb{border:0;background:none;color:var(--accent);font:inherit;font-weight:600;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:3px}
+.own-badge{font-size:11px;font-weight:600;color:var(--blue);background:var(--blue-soft);border-radius:999px;padding:1px 7px;text-transform:none;letter-spacing:0}
+.fc-tfil{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.fc-tfil button{border:1px solid var(--line);background:var(--surface);color:var(--muted);font:inherit;font-size:13px;font-weight:600;padding:6px 12px;border-radius:999px;cursor:pointer}
+.fc-tfil button span{font-family:var(--f-mono);font-weight:500;margin-left:3px;opacity:.8}
+.fc-tfil button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.fc-twrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.fc-t{width:100%;border-collapse:collapse;font-size:14px}
+.fc-t th{text-align:left;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:10px 12px;border-bottom:1.5px solid var(--line);background:var(--paper)}
+.fc-t td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.5}
+.fc-t tr:last-child td{border-bottom:0}
+.fc-t .fstc{width:1%;white-space:nowrap}
+.fc-t .fq{font-weight:600;width:38%}.fc-t .fa{color:var(--muted)}
+.fc-t .fa ul,.fc-t .fa ol{margin:0;padding-left:18px}
+.fc-t .ftag{display:block;font-size:11.5px;font-weight:500;color:var(--muted);margin-bottom:3px}
+.fc-t .fact{width:1%;text-align:right}
+.fc-t .fact .btn.sm{display:block;width:100%;margin:0 0 6px;white-space:nowrap}
+.fc-t tr.is-ex td:not(.fact){opacity:.5}
+.fc-t .fempty{text-align:center;color:var(--muted);padding:22px}
+.fst{display:inline-block;border:0;font:inherit;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap;cursor:pointer}
+.fst.ok{background:var(--ok-soft);color:var(--ok)}.fst.todo{background:var(--paper);color:var(--muted);border:1px solid var(--line)}.fst.ex{background:var(--bad-soft);color:var(--bad);cursor:default}
+.btn.sm{padding:5px 11px;font-size:12.5px}
+@media (max-width:700px){
+  .fc-t thead{display:none}
+  .fc-t tr{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:12px;border-bottom:1px solid var(--line)}
+  .fc-t td{display:block;padding:0;border:0;width:auto!important}
+  .fc-t .fstc{grid-column:2;grid-row:1}.fc-t .fq{grid-column:1;grid-row:1}
+  .fc-t .fa{grid-column:1 / -1}.fc-t .fact{grid-column:1 / -1;text-align:left}
+  .fc-t .fact .btn.sm{display:inline-block;width:auto;margin:4px 6px 0 0}
+}

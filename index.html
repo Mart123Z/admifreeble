@@ -4064,14 +4064,33 @@ function renderSynth(p){
 }
 
 /* ---------- Flashcards ---------- */
+/* Cartes du cours (id = numéro, comme avant) + cartes ajoutées par l'utilisateur (id « c… »).
+   Enregistré sur le compte : known (maîtrisées), excluded (exclues), custom (mes cartes), fcview (vue). */
 function renderFlash(p){
-  const cards=D.flashcards.map((c,i)=>({...c,i}));
-  let known=new Set(store.get('known',[])), mode='all', order=cards.map(c=>c.i), idx=0, flipped=false;
+  const base=D.flashcards.map((c,i)=>({...c,id:i,own:false}));
+  let custom=store.get('custom',[]), excl=new Set(store.get('excluded',[])), known=new Set(store.get('known',[]));
+  let mode='all', view=store.get('fcview','cards')==='table'?'table':'cards', tfilter='all', idx=0, flipped=false, editing=null, order=null;
+  const txt=s=>esc(s||'').replace(/\n/g,'<br>');
+  const all=()=>base.concat(custom.map(c=>({id:c.id,tag:c.tag||'Ma carte',q:txt(c.q),a:txt(c.a),own:true})));
+  const byId=id=>all().find(c=>c.id===id);
+  const active=()=>all().filter(c=>!excl.has(c.id));
+  const save=()=>{store.set('custom',custom);store.set('excluded',[...excl]);store.set('known',[...known])};
+  function deck(){const ids=active().map(c=>c.id);if(!order)order=ids;order=order.filter(id=>ids.includes(id)).concat(ids.filter(id=>!order.includes(id)));return order}
+  const ICON_X='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4l16 16"/><path d="M9.9 4.2A10 10 0 0 1 12 4c5 0 9 4.5 10 8-.4 1.3-1.2 2.7-2.4 4M6.6 6.6C4.4 8 3 10 2 12c1 3.5 5 8 10 8 1.8 0 3.4-.5 4.8-1.3"/></svg>';
   p.innerHTML=`<div class="fc-bar">
-    <div class="seg" role="group" aria-label="Filtre"><button data-m="all" aria-pressed="true">Toutes</button><button data-m="todo" aria-pressed="false">À revoir</button></div>
-    <div style="display:flex;gap:10px;align-items:center;flex:1;justify-content:flex-end;min-width:220px"><span class="meter"><i id="fcMeter"></i></span><span id="fcStat" style="font-size:13px;color:var(--muted);font-family:var(--f-mono)"></span></div>
+    <div class="seg" role="group" aria-label="Affichage"><button data-v="cards">Cartes</button><button data-v="table">Tableau</button></div>
+    <div class="seg fc-modes" role="group" aria-label="Filtre"><button data-m="all" aria-pressed="true">Toutes</button><button data-m="todo" aria-pressed="false">À revoir</button></div>
+    <div class="fc-meterbox"><span class="meter"><i id="fcMeter"></i></span><span id="fcStat"></span></div>
+    <button class="btn pri fc-addb" id="fcAdd" type="button">+ Ajouter une carte</button>
   </div>
-  <div class="fc-stage"><div class="card" id="fcCard" tabindex="0" aria-label="Carte : clique ou appuie sur Espace pour retourner">
+  <form class="fc-form" id="fcForm" hidden>
+    <h3 id="fcFormT">Nouvelle flashcard</h3>
+    <label>Thème <small>(facultatif)</small><input name="tag" maxlength="40" placeholder="Ex. Définitions"></label>
+    <label>Question (recto)<textarea name="q" rows="3" maxlength="600" required></textarea></label>
+    <label>Réponse (verso)<textarea name="a" rows="4" maxlength="1500" required></textarea></label>
+    <div class="fc-fbar"><button class="btn pri" type="submit">Enregistrer la carte</button><button class="btn" type="button" id="fcCancel">Annuler</button><span class="fc-fmsg" role="status"></span></div>
+  </form>
+  <div id="fcCards"><div class="fc-stage"><div class="card" id="fcCard" tabindex="0" aria-label="Carte : clique ou appuie sur Espace pour retourner">
     <div class="face front"><span class="tag" id="fcTag"></span><div class="q" id="fcQ"></div><div class="foot"><span id="fcPos"></span><span>Clique pour retourner ↺</span></div></div>
     <div class="face back"><span class="tag">Réponse</span><div class="a" id="fcA"></div><div class="foot"><span id="fcPos2"></span><span>← → pour naviguer</span></div></div>
   </div>
@@ -4081,17 +4100,26 @@ function renderFlash(p){
     <button class="btn ok" id="fcYes">Je savais ✓</button>
     <button class="btn" id="fcNext">Suivante →</button>
   </div>
-  <div class="fc-actions"><button class="btn" id="fcShuf">Mélanger</button><button class="btn" id="fcReset">Remettre à zéro</button></div></div>`;
-  const card=$('#fcCard',p);
-  function list(){return mode==='all'?order:order.filter(i=>!known.has(i))}
+  <div class="fc-actions"><button class="btn" id="fcShuf">Mélanger</button><button class="btn" id="fcReset">Remettre à zéro</button><button class="btn" id="fcExcl">${ICON_X} Exclure cette carte</button></div>
+  <p class="fc-exnote" id="fcExNote"></p></div></div>
+  <div id="fcTable" hidden>
+    <div class="fc-tfil" role="group" aria-label="Filtrer le tableau"></div>
+    <div class="fc-twrap"><table class="fc-t"><thead><tr><th>Statut</th><th>Question</th><th>Réponse</th><th></th></tr></thead><tbody></tbody></table></div>
+  </div>`;
+  const card=$('#fcCard',p), form=$('#fcForm',p);
+  /* ----- vue Cartes ----- */
+  function list(){const d=deck();return mode==='all'?d:d.filter(id=>!known.has(id))}
+  function stat(){const A=active(),k=A.filter(c=>known.has(c.id)).length;$('#fcMeter',p).style.width=(A.length?k/A.length*100:0)+'%';$('#fcStat',p).textContent=k+' / '+A.length+' maîtrisées';
+    const n=excl.size;$('#fcExNote',p).innerHTML=n?n+' carte'+(n>1?'s':'')+' exclue'+(n>1?'s':'')+' · <button type="button" class="linkb" id="fcSeeEx">Voir les cartes exclues</button>':'';
+    const se=$('#fcSeeEx',p);if(se)se.onclick=()=>{tfilter='excl';setView('table')}}
   function draw(){
-    const L=list(); $('#fcMeter',p).style.width=(known.size/cards.length*100)+'%';
-    $('#fcStat',p).textContent=known.size+' / '+cards.length+' maîtrisées';
+    stat(); const L=list();
     card.classList.remove('flip');flipped=false;
-    if(!L.length){$('#fcTag',p).textContent='Bravo';$('#fcQ',p).innerHTML='Toutes les cartes sont maîtrisées. Passe sur « Toutes » pour réviser à nouveau.';$('#fcA',p).innerHTML='';$('#fcPos',p).textContent='';return}
+    const dis=!L.length;['#fcExcl','#fcYes','#fcNo'].forEach(s=>$(s,p).disabled=dis);
+    if(!L.length){$('#fcTag',p).textContent=active().length?'Bravo':'Aucune carte';$('#fcQ',p).innerHTML=active().length?'Toutes les cartes sont maîtrisées. Passe sur « Toutes » pour réviser à nouveau.':'Toutes les cartes sont exclues. Réintègre-les depuis le tableau ou ajoute les tiennes.';$('#fcA',p).innerHTML='';$('#fcPos',p).textContent='';$('#fcPos2',p).textContent='';return}
     if(idx>=L.length)idx=0; if(idx<0)idx=L.length-1;
-    const c=cards[L[idx]];
-    $('#fcTag',p).innerHTML=(c.tag||'')+(known.has(c.i)?' · <span class="known-badge">maîtrisée</span>':'');
+    const c=byId(L[idx]);
+    $('#fcTag',p).innerHTML=esc(c.tag||'')+(c.own?' · <span class="own-badge">ma carte</span>':'')+(known.has(c.id)?' · <span class="known-badge">maîtrisée</span>':'');
     $('#fcQ',p).innerHTML=c.q; $('#fcA',p).innerHTML=c.a;
     $('#fcPos',p).textContent=$('#fcPos2',p).textContent=(idx+1)+' / '+L.length;
   }
@@ -4100,12 +4128,52 @@ function renderFlash(p){
   card.onkeydown=e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();flip()}else if(e.key==='ArrowRight'){idx++;draw()}else if(e.key==='ArrowLeft'){idx--;draw()}};
   $('#fcPrev',p).onclick=()=>{idx--;draw()};
   $('#fcNext',p).onclick=()=>{idx++;draw()};
-  $('#fcYes',p).onclick=()=>{const L=list();if(!L.length)return;known.add(L[idx]);store.set('known',[...known]);if(mode==='all')idx++;draw()};
-  $('#fcNo',p).onclick=()=>{const L=list();if(!L.length)return;known.delete(L[idx]);store.set('known',[...known]);idx++;draw()};
-  $('#fcShuf',p).onclick=()=>{order=shuffle(order);idx=0;draw()};
-  $('#fcReset',p).onclick=()=>{known.clear();store.set('known',[]);idx=0;draw()};
-  p.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{mode=b.dataset.m;p.querySelectorAll('.seg button').forEach(x=>x.setAttribute('aria-pressed',x===b));idx=0;draw()});
-  draw();
+  $('#fcYes',p).onclick=()=>{const L=list();if(!L.length)return;known.add(L[idx]);save();if(mode==='all')idx++;draw()};
+  $('#fcNo',p).onclick=()=>{const L=list();if(!L.length)return;known.delete(L[idx]);save();idx++;draw()};
+  $('#fcShuf',p).onclick=()=>{order=shuffle(deck());idx=0;draw()};
+  $('#fcReset',p).onclick=()=>{known.clear();save();idx=0;draw()};
+  $('#fcExcl',p).onclick=()=>{const L=list();if(!L.length)return;excl.add(L[idx]);save();draw()};
+  p.querySelectorAll('.fc-modes button').forEach(b=>b.onclick=()=>{mode=b.dataset.m;p.querySelectorAll('.fc-modes button').forEach(x=>x.setAttribute('aria-pressed',x===b));idx=0;draw()});
+  /* ----- vue Tableau ----- */
+  const FIL=[['all','Toutes'],['todo','À revoir'],['known','Maîtrisées'],['excl','Exclues'],['own','Mes cartes']];
+  function drawTable(){
+    const A=all(), cnt={all:A.filter(c=>!excl.has(c.id)).length,todo:A.filter(c=>!excl.has(c.id)&&!known.has(c.id)).length,known:A.filter(c=>!excl.has(c.id)&&known.has(c.id)).length,excl:A.filter(c=>excl.has(c.id)).length,own:custom.length};
+    $('.fc-tfil',p).innerHTML=FIL.map(([k,l])=>`<button type="button" data-tf="${k}" aria-pressed="${tfilter===k}">${l} <span>${cnt[k]}</span></button>`).join('');
+    p.querySelectorAll('[data-tf]').forEach(b=>b.onclick=()=>{tfilter=b.dataset.tf;drawTable()});
+    const rows=A.filter(c=>tfilter==='excl'?excl.has(c.id):tfilter==='own'?c.own:!excl.has(c.id)&&(tfilter==='all'||(tfilter==='known')===known.has(c.id)));
+    const st=c=>excl.has(c.id)?'<span class="fst ex">Exclue</span>':known.has(c.id)?'<button type="button" class="fst ok" data-k title="Cliquer pour remettre à revoir">✓ Maîtrisée</button>':'<button type="button" class="fst todo" data-k title="Cliquer pour marquer maîtrisée">À revoir</button>';
+    $('.fc-t tbody',p).innerHTML=rows.length?rows.map(c=>`<tr data-id="${esc(String(c.id))}" class="${excl.has(c.id)?'is-ex':''}">
+      <td data-l="Statut" class="fstc">${st(c)}</td>
+      <td data-l="Question" class="fq"><span class="ftag">${esc(c.tag||'')}${c.own?' <span class="own-badge">ma carte</span>':''}</span>${c.q}</td><td data-l="Réponse" class="fa">${c.a}</td>
+      <td class="fact">${excl.has(c.id)?'<button type="button" class="btn sm" data-in>Réintégrer</button>':'<button type="button" class="btn sm" data-ex>Exclure</button>'}${c.own?'<button type="button" class="btn sm" data-ed>Modifier</button><button type="button" class="btn sm ghost" data-del>Supprimer</button>':''}</td></tr>`).join('')
+      :`<tr><td colspan="4" class="fempty">${tfilter==='excl'?'Aucune carte exclue.':tfilter==='own'?'Tu n’as pas encore ajouté de carte. Clique sur « + Ajouter une carte ».':'Aucune carte ici.'}</td></tr>`;
+    p.querySelectorAll('.fc-t tr[data-id]').forEach(tr=>{
+      const raw=tr.dataset.id, id=/^\d+$/.test(raw)?+raw:raw, q=s=>tr.querySelector(s);
+      if(q('[data-k]'))q('[data-k]').onclick=()=>{known.has(id)?known.delete(id):known.add(id);save();drawTable();stat()};
+      if(q('[data-ex]'))q('[data-ex]').onclick=()=>{excl.add(id);save();drawTable();stat()};
+      if(q('[data-in]'))q('[data-in]').onclick=()=>{excl.delete(id);save();drawTable();stat()};
+      if(q('[data-ed]'))q('[data-ed]').onclick=()=>openForm(custom.find(c=>c.id===id));
+      if(q('[data-del]'))q('[data-del]').onclick=e=>{const b=e.currentTarget;if(!b.dataset.sure){b.dataset.sure=1;b.textContent='Confirmer ?';setTimeout(()=>{if(b.isConnected){delete b.dataset.sure;b.textContent='Supprimer'}},3000);return}
+        custom=custom.filter(c=>c.id!==id);known.delete(id);excl.delete(id);save();drawTable();stat()};
+    });
+  }
+  /* ----- ajout / modification ----- */
+  function openForm(c){editing=c?c.id:null;form.hidden=false;$('#fcFormT',p).textContent=c?'Modifier ma carte':'Nouvelle flashcard';
+    form.tag.value=c?c.tag||'':'';form.q.value=c?c.q:'';form.a.value=c?c.a:'';$('.fc-fmsg',p).textContent='';form.scrollIntoView({behavior:'smooth',block:'nearest'});form.q.focus()}
+  $('#fcAdd',p).onclick=()=>openForm(null);
+  $('#fcCancel',p).onclick=()=>{form.hidden=true;editing=null};
+  form.onsubmit=e=>{e.preventDefault();const tag=form.tag.value.trim(),q=form.q.value.trim(),a=form.a.value.trim();
+    if(!q||!a){$('.fc-fmsg',p).textContent='Écris une question et une réponse.';return}
+    if(editing){const c=custom.find(x=>x.id===editing);if(c)Object.assign(c,{tag,q,a})}
+    else custom.push({id:'c'+Date.now().toString(36)+Math.random().toString(36).slice(2,5),tag,q,a});
+    save();form.reset();form.hidden=true;$('.fc-fmsg',p).textContent='';editing=null;
+    view==='table'?drawTable():(order=null,draw());stat()};
+  /* ----- bascule de vue ----- */
+  function setView(v){view=v;store.set('fcview',v);p.querySelectorAll('[data-v]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===v));
+    $('#fcCards',p).hidden=v!=='cards';$('#fcTable',p).hidden=v!=='table';p.querySelector('.fc-modes').hidden=v!=='cards';
+    if(v==='table')drawTable();else{order=null;draw()}}
+  p.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>setView(b.dataset.v));
+  setView(view);
 }
 
 /* ---------- QCM (plusieurs séries) ---------- */
@@ -4192,7 +4260,7 @@ const ALL=[];M.courses.forEach(c=>c.chapters.forEach((ch,i)=>ALL.push({c,ch,i}))
 const S={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const esc=s=>String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
 const side=document.querySelector('.side nav'), main=document.querySelector('.view');
-function prog(id){const m=META[id];const k=S.get('fiche-'+m.fid+'-known',[]).length;let done=0,pts=0,tot=0;(m.series||[]).forEach(s=>{const b=S.get('fiche-'+m.fid+'-'+s.key,null);if(b!==null){done++;pts+=b;tot+=s.n}});return {k,fc:m.fc,done,ns:(m.series||[]).length,pct:tot?Math.round(pts/tot*100):null,q:m.q}}
+function prog(id){const m=META[id];const kn=S.get('fiche-'+m.fid+'-known',[]),ex=S.get('fiche-'+m.fid+'-excluded',[]),cu=S.get('fiche-'+m.fid+'-custom',[]);const k=kn.filter(x=>!ex.includes(x)).length,fc=m.fc-ex.filter(x=>typeof x==='number').length+cu.filter(c=>!ex.includes(c.id)).length;let done=0,pts=0,tot=0;(m.series||[]).forEach(s=>{const b=S.get('fiche-'+m.fid+'-'+s.key,null);if(b!==null){done++;pts+=b;tot+=s.n}});return {k,fc,done,ns:(m.series||[]).length,pct:tot?Math.round(pts/tot*100):null,q:m.q}}
 /* ---------- Statut des chapitres : seul l'utilisateur le change (gris → bleu → jaune → vert) ---------- */
 const ST=[{k:'',l:'Pas de statut'},{k:'todo',l:'À faire'},{k:'doing',l:'En cours'},{k:'done',l:'Complété'},{k:'redo',l:'À repasser'}];
 function stGet(id){const o=S.get('hub-status',{});return (o&&o[id])||''}
