@@ -8,6 +8,7 @@
   const TABS = { synthese: { sel: "#prose", label: "Synthèse" }, fiche: { sel: ".ess-sheet", label: "Fiche" } };
   const SKIP = ".toolbar,style,script,.hl-bar";
   let bar = null, pop = null, pending = null, lastDown = 0, win = null, winId = null, lastColor = "jaune";
+  const EYE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.1A9.8 9.8 0 0 1 12 5c5 0 9 4.5 10 7-.4 1-1.2 2.3-2.4 3.5M6.6 6.6C4.5 8 3.2 10 2 12c1 2.5 5 7 10 7 1.9 0 3.6-.6 5-1.5"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
   const NOTE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v11l-5 5H5z"/><path d="M14 20v-5h5"/></svg>';
 
   /* ---------- Texte et positions ---------- */
@@ -19,6 +20,14 @@
   }
   const fullText = root => texts(root).map(n => n.data).join("");
   function wrap(root, s, e, note) {
+    wrapWith(root, s, e, () => {
+      const m = document.createElement("mark");
+      m.className = "hl"; m.dataset.hl = note.id; m.dataset.c = note.hl.c;
+      m.title = note.t ? note.t.slice(0, 140) : "Passage surligné · clique pour la note ou la couleur";
+      return m;
+    });
+  }
+  function wrapWith(root, s, e, mk) {
     let pos = 0; const list = texts(root);
     for (const t of list) {
       const a = pos, b = pos + t.data.length; pos = b;
@@ -29,14 +38,12 @@
       if (from > 0) node = node.splitText(from);
       if (to - from < node.data.length) node.splitText(to - from);
       if (!node.data.trim()) continue;
-      const m = document.createElement("mark");
-      m.className = "hl"; m.dataset.hl = note.id; m.dataset.c = note.hl.c;
-      m.title = note.t ? note.t.slice(0, 140) : "Passage surligné · clique pour la note ou la couleur";
+      const m = mk();
       node.parentNode.insertBefore(m, node); m.appendChild(node);
     }
   }
   function unwrap(root) {
-    root.querySelectorAll("mark.hl").forEach(m => { const p = m.parentNode; while (m.firstChild) p.insertBefore(m.firstChild, m); p.removeChild(m); });
+    root.querySelectorAll("mark.hl, mark.ub").forEach(m => { const p = m.parentNode; while (m.firstChild) p.insertBefore(m.firstChild, m); p.removeChild(m); });
     root.normalize();
   }
   /* Retrouve le passage : position enregistrée, sinon première occurrence du texte la plus proche */
@@ -45,6 +52,37 @@
     let best = -1, i = txt.indexOf(h.q);
     while (i !== -1) { if (best === -1 || Math.abs(i - h.s) < Math.abs(best - h.s)) best = i; i = txt.indexOf(h.q, i + 1); }
     return best === -1 ? null : [best, best + h.q.length];
+  }
+
+  /* ---------- Mots masqués par l'utilisateur ----------
+     hub-blur = { chapitre: [ { id, s, e, q } ] } (onglet Synthèse), floutés en mode mémoire
+     comme les mots-clés du cours, enregistrés sur le compte. */
+  const BKEY = "hub-blur";
+  const blurs = () => { const o = S.get(BKEY, {}) || {}; return (CUR && o[CUR]) || []; };
+  function saveBlurs(arr) { const o = S.get(BKEY, {}) || {}; if (arr.length) o[CUR] = arr; else delete o[CUR]; S.set(BKEY, o); }
+  function addBlur() {
+    if (!pending || !CUR || pending.tab !== "synthese") return;
+    /* on étend la sélection aux mots entiers (« droit est li » → « droit est lié ») */
+    const root = roots().find(([t]) => t === "synthese"); if (!root) return;
+    const txt = fullText(root[1]), W = /[\p{L}\p{N}’'-]/u;
+    let s0 = pending.s, e0 = pending.e;
+    while (s0 > 0 && W.test(txt[s0 - 1])) s0--;
+    while (e0 < txt.length && W.test(txt[e0])) e0++;
+    const arr = blurs();
+    if (!arr.some(x => x.s === s0 && x.e === e0))
+      arr.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), s: s0, e: e0, q: txt.slice(s0, e0) });
+    saveBlurs(arr);
+    window.getSelection().removeAllRanges(); hideBar();
+    const cb = main.querySelector("#hideKeys");
+    if (cb && !cb.checked) { cb.checked = true; cb.dispatchEvent(new Event("change")); }   /* on montre tout de suite l'effet */
+    refresh();
+  }
+  function removeBlur(id) { saveBlurs(blurs().filter(b => b.id !== id)); refresh(); }
+  function showUbPop(u, rect) {
+    ensureUI(); hideBar();
+    pop.dataset.id = ""; pop.dataset.ub = u;
+    pop.innerHTML = '<button type="button" class="hl-act" data-unblur>' + EYE_ICON + 'Ne plus masquer</button>';
+    place(pop, rect);
   }
 
   /* ---------- Application sur les onglets ---------- */
@@ -59,6 +97,9 @@
     roots().forEach(([tab, root]) => {
       unwrap(root);
       const txt = fullText(root);
+      if (tab === "synthese") blurs().forEach(b => { const at = locate(txt, b); if (at) wrapWith(root, at[0], at[1], () => {
+        const m = document.createElement("mark"); m.className = "ub"; m.dataset.ub = b.id;
+        m.title = "Mot masqué par toi · en mode mémoire, clique pour le révéler"; return m; }); });
       notes.filter(n => n.hl.tab === tab).forEach(n => { const at = locate(txt, n.hl); if (at) wrap(root, at[0], at[1], n); });
     });
     main.querySelectorAll(".pi-hl").forEach(el => {
@@ -76,7 +117,7 @@
   function ensureUI() {
     if (bar) return;
     bar = document.createElement("div"); bar.className = "hl-bar"; bar.hidden = true; bar.setAttribute("role", "toolbar"); bar.setAttribute("aria-label", "Surligner le passage");
-    bar.innerHTML = '<span class="hl-l">Surligner</span>' + swatches(null, "data-new") + '<span class="hl-sep"></span><button type="button" class="hl-act hl-note" data-newnote title="Surligner et ouvrir une note au-dessus du cours">' + NOTE_ICON + 'Note</button>';
+    bar.innerHTML = '<span class="hl-l">Surligner</span>' + swatches(null, "data-new") + '<span class="hl-sep"></span><button type="button" class="hl-act hl-note" data-newnote title="Surligner et ouvrir une note au-dessus du cours">' + NOTE_ICON + 'Note</button><span class="hl-sep hl-bsep"></span><button type="button" class="hl-act hl-note hl-blurb" data-blur title="Flouter ce passage en mode mémoire">' + EYE_ICON + 'Masquer</button>';
     pop = document.createElement("div"); pop.className = "hl-bar hl-pop"; pop.hidden = true; pop.setAttribute("role", "toolbar");
     document.body.append(bar, pop);
     /* Safari (Mac) efface la sélection au moment du clic : avec la souris, on agit dès
@@ -132,7 +173,9 @@
     selTimer = setTimeout(() => {
       if (!CUR) return hideBar();
       const s = readSelection(); if (!s) return hideBar();
-      ensureUI(); hidePop(); pending = s; place(bar, s.rect);
+      ensureUI(); hidePop(); pending = s;
+      bar.querySelectorAll(".hl-blurb,.hl-bsep").forEach(x => x.hidden = s.tab !== "synthese");
+      place(bar, s.rect);
     }, 180);
   }
   document.addEventListener("selectionchange", onSelect);
@@ -174,11 +217,11 @@
       if (m) { m.scrollIntoView({ behavior: "smooth", block: "center" }); main.querySelectorAll('mark.hl[data-hl="' + id + '"]').forEach(flash); }
     }, 60);
   }
-  function showPop(m) {
+  function showPop(m, ub) {
     ensureUI(); hideBar();
     const id = m.dataset.hl, n = NOTES.get(CUR).find(x => x.id === id); if (!n) return;
-    pop.dataset.id = id;
-    pop.innerHTML = swatches(n.hl.c, "data-set") + '<span class="hl-sep"></span><button type="button" class="hl-act hl-note" data-open>' + NOTE_ICON + (n.t ? "Ouvrir la note" : "Écrire une note") + '</button><button type="button" class="hl-act" data-side title="Voir dans Mes notes">Mes notes</button><button type="button" class="hl-act del" data-del>Retirer</button>';
+    pop.dataset.id = id; pop.dataset.ub = ub || "";
+    pop.innerHTML = swatches(n.hl.c, "data-set") + '<span class="hl-sep"></span><button type="button" class="hl-act hl-note" data-open>' + NOTE_ICON + (n.t ? "Ouvrir la note" : "Écrire une note") + '</button><button type="button" class="hl-act" data-side title="Voir dans Mes notes">Mes notes</button><button type="button" class="hl-act del" data-del>Retirer</button>' + (ub ? '<span class="hl-sep"></span><button type="button" class="hl-act" data-unblur>' + EYE_ICON + 'Ne plus masquer</button>' : "");
     place(pop, m.getBoundingClientRect());
   }
 
@@ -197,11 +240,13 @@
     if (bar && t.closest(".hl-bar") === bar) {
       const b = t.closest("[data-new]"); if (b) { lastColor = b.dataset.new; create(lastColor); }
       else if (t.closest("[data-newnote]")) create(lastColor, viaDown ? "later" : true);
+      else if (t.closest("[data-blur]")) addBlur();
       return true;
     }
     if (pop && t.closest(".hl-pop") === pop) {
       const id = pop.dataset.id, b = t.closest("button"); if (!b) return true;
-      if (b.dataset.set) setColor(id, b.dataset.set);
+      if (b.hasAttribute("data-unblur")) removeBlur(pop.dataset.ub);
+      else if (b.dataset.set) setColor(id, b.dataset.set);
       else if (b.hasAttribute("data-open")) { const m = main.querySelector('mark.hl[data-hl="' + id + '"]'); openWinLater(id, m && m.getBoundingClientRect(), viaDown); }
       else if (b.hasAttribute("data-side")) openNote(id, true);
       else if (b.hasAttribute("data-del")) remove(id);
@@ -212,7 +257,16 @@
   document.addEventListener("click", e => {
     const t = e.target;
     if (t.closest(".hl-bar")) { if (Date.now() - lastDown > 700) act(t); return; }
+    const u = t.closest("mark.ub"), selOn = window.getSelection() && !window.getSelection().isCollapsed;
+    if (u && !selOn) {
+      if (u.closest(".hide-keys")) {           /* mode mémoire : un clic révèle / refloute */
+        e.preventDefault(); const on = !u.classList.contains("shown");
+        main.querySelectorAll('mark.ub[data-ub="' + u.dataset.ub + '"]').forEach(x => x.classList.toggle("shown", on)); hidePop(); return;
+      }
+      if (!t.closest("mark.hl")) { e.preventDefault(); showUbPop(u.dataset.ub, u.getBoundingClientRect()); return; }
+    }
     const m = t.closest("mark.hl");
+    if (m && u && !selOn && !u.closest(".hide-keys")) { e.preventDefault(); showPop(m, u.dataset.ub); return; }
     if (m && !(t.closest("mark.k") && t.closest(".hide-keys")) && !(window.getSelection() && !window.getSelection().isCollapsed)) { e.preventDefault(); showPop(m); return; }
     const q = t.closest(".pi-q"); if (q) { gotoMark(q.closest(".pi").dataset.note); return; }
     const sw = t.closest("[data-pic]"); if (sw) { setColor(sw.closest(".pi").dataset.note, sw.dataset.pic); return; }
@@ -220,6 +274,7 @@
     hidePop();
   });
   document.addEventListener("keydown", e => { if (e.key === "Escape") { hideBar(); hidePop(); } });
+  document.addEventListener("change", e => { if (e.target.id === "hideKeys") main.querySelectorAll("mark.ub.shown").forEach(x => x.classList.remove("shown")); });
   window.addEventListener("hashchange", () => { hideBar(); hidePop(); closeWin(); });
   window.addEventListener("resize", () => { hideBar(); hidePop(); if (win && !win.hidden) clampWin(); });
 

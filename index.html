@@ -4055,7 +4055,7 @@ function renderSynth(p){
   const toc=D.sections.map((s,i)=>`<li><a href="#s-${s.id}" data-s="${s.id}">${s.title}</a></li>`).join('');
   const body=D.sections.map((s,i)=>`<section id="s-${s.id}"><h2><span class="n">${String(i+1).padStart(2,'0')}</span>${s.title}</h2>${s.html}</section>`).join('');
   p.innerHTML=`<div class="synth"><aside class="toc"><p>Sommaire</p><ol>${toc}</ol></aside><div class="prose" id="prose">
-  <div class="toolbar"><label><input type="checkbox" id="hideKeys"> Masquer les mots-clés</label><span>Mode mémoire active : clique sur un mot flouté pour le révéler.</span><button class="btn dlb" type="button" data-dl="cours">${DL_ICON}Télécharger le cours (PDF)</button></div>${body}</div></div>`;
+  <div class="toolbar"><label><input type="checkbox" id="hideKeys"> Masquer les mots-clés</label><span>Mode mémoire active : clique sur un mot flouté pour le révéler. Pour flouter tes propres mots, sélectionne-les puis « Masquer ».</span><button class="btn dlb" type="button" data-dl="cours">${DL_ICON}Télécharger le cours (PDF)</button></div>${body}</div></div>`;
   const prose=$('#prose',p), cb=$('#hideKeys',p);
   cb.checked=store.get('hideKeys',false); prose.classList.toggle('hide-keys',cb.checked);
   cb.onchange=()=>{prose.classList.toggle('hide-keys',cb.checked);prose.querySelectorAll('mark.k.shown').forEach(m=>m.classList.remove('shown'));store.set('hideKeys',cb.checked)};

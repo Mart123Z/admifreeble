@@ -176,3 +176,9 @@ mark.hl:hover{box-shadow:0 0 0 2px var(--hlc)}
 .hl-win textarea{width:100%;font:inherit;font-size:15px;line-height:1.5;padding:9px 10px;border-radius:8px;border:1px solid var(--line);background:var(--paper);color:var(--ink);resize:vertical;min-height:120px}
 .hlw-f{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted)}
 .hlw-del{border:0;background:none;color:var(--bad);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;padding:2px 4px}
+/* Mots masqués par l'utilisateur (mode mémoire) */
+mark.ub{background:none;color:inherit;border-bottom:2px dotted var(--accent);cursor:pointer;border-radius:0}
+.hide-keys mark.ub{filter:blur(5px);background:var(--accent-soft);border-radius:3px;border-bottom:0;user-select:none}
+.hide-keys mark.ub.shown{filter:none;background:none;border-bottom:2px dotted var(--accent);border-radius:0}
+.hl-act svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.hl-bar [hidden]{display:none}
