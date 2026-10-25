@@ -4285,7 +4285,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button.st[data-c
 /* Barre « coches » d'un cours : vert = 100 %, jaune = 50 %, violet (à repasser) = 50 %, bleu = 0 % ; les chapitres sans coche ne comptent pas */
 const STV={done:1,doing:.5,redo:.5,todo:0};
 function stProg(c){let n=0,v=0;c.chapters.forEach(ch=>{const k=stGet(ch.id);if(k in STV){n++;v+=STV[k]}});return {n,v,p:n?Math.round(v/n*100):null}}
-function stBarIn(c){const r=stProg(c);return '<span class="stb-l">Coches</span><span class="bar"><i style="width:'+(r.p||0)+'%"></i></span><b>'+(r.p===null?'—':r.p+' %')+'</b><small>'+(r.n?r.n+' chapitre'+(r.n>1?'s':'')+' coché'+(r.n>1?'s':''):'aucun chapitre coché')+'</small>'}
+function stBarIn(c){const r=stProg(c);return '<span class="stb-r" style="--p:'+(r.p||0)+'"><b>'+(r.p===null?'—':r.p+'<small>%</small>')+'</b></span><span class="stb-t"><span class="stb-l">Coches</span><small>'+(r.n?r.n+' chapitre'+(r.n>1?'s':'')+' coché'+(r.n>1?'s':''):'aucun chapitre coché')+'</small></span>'}
 function stBar(c){return '<span class="cc-st'+(stProg(c).p===100?' full':'')+'" data-stc="'+c.id+'" title="Avancement selon tes coches : complété = 100 %, en cours ou à repasser = 50 %, à faire = 0 %. Les chapitres sans coche ne comptent pas.">'+stBarIn(c)+'</span>'}
 function updStBars(){document.querySelectorAll('[data-stc]').forEach(el=>{const c=M.courses.find(x=>x.id===el.dataset.stc);if(c){el.innerHTML=stBarIn(c);el.classList.toggle('full',stProg(c).p===100)}})}
 /* ---------- Livre du cours (référence + lien officiel ; le PDF n'est pas hébergé : droits d'auteur) ---------- */

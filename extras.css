@@ -348,15 +348,16 @@ html.nt-lock{overflow:hidden}
 @media (max-width:860px){.gprog{grid-template-columns:1fr}}
 @media (max-width:640px){.chlist a{grid-template-columns:1fr}.chlist .pr{max-width:none}.ccard header .cc-p{margin-left:0;min-width:0;width:100%}.gp-ring{width:80px;height:80px}.gp-ring b{width:62px;height:62px;font-size:23px}.gp-list li{grid-template-columns:136px 1fr 40px;gap:8px}}
 
-/* Barre « coches » par cours */
+/* Anneau « coches » par cours */
+.ccard header{align-items:center}
 .ccard header .cc-p{flex-basis:100%;order:3;margin-left:0;max-width:none}
 .ccard header .cc-p::before{content:"Cartes + QCM";font-size:12px;color:var(--muted);min-width:96px}
-.ccard header .cc-st{order:4;flex-basis:100%;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
-.ccard header .cc-st .stb-l{min-width:96px;color:var(--muted);font-size:12px}
-.ccard header .cc-st .bar{flex:1;height:7px;border-radius:999px;background:var(--line);overflow:hidden}
-.ccard header .cc-st .bar i{display:block;height:100%;background:var(--st-done);transition:width .25s}
-.ccard header .cc-st b{font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums;min-width:38px;text-align:right}
-.ccard header .cc-st small{min-width:140px;font-size:12px;color:var(--muted)}
-.ccard header .cc-p::after{content:"";min-width:140px}
-.ccard header .cc-st.full b{color:var(--st-done)}
-@media (max-width:640px){.ccard header .cc-st small,.ccard header .cc-p::after{display:none}.ccard header .cc-p::before,.ccard header .cc-st .stb-l{min-width:84px}}
+.ccard header .cc-st{order:2;margin-left:auto;display:flex;align-items:center;gap:9px}
+.ccard header .cc-st .stb-r{--p:0;flex:none;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--st-done) calc(var(--p)*1%),var(--line) 0);transition:background .25s}
+.ccard header .cc-st .stb-r b{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--surface);font-family:var(--f-display);font-size:14px;font-weight:700;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
+.ccard header .cc-st .stb-r b small{font-family:var(--f-body);font-size:8.5px;color:var(--muted);margin:3px 0 0 1px}
+.ccard header .cc-st .stb-t{display:grid;line-height:1.25}
+.ccard header .cc-st .stb-l{font-size:13px;font-weight:600;color:var(--ink)}
+.ccard header .cc-st small{font-size:12px;color:var(--muted)}
+.ccard header .cc-st.full .stb-l{color:var(--st-done)}
+@media (max-width:640px){.ccard header .cc-p::before{min-width:84px}.ccard header .cc-st{margin-left:0;flex-basis:100%;order:2}}
