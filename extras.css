@@ -361,3 +361,7 @@ html.nt-lock{overflow:hidden}
 .ccard header .cc-st small{font-size:12px;color:var(--muted)}
 .ccard header .cc-st.full .stb-l{color:var(--st-done)}
 @media (max-width:640px){.ccard header .cc-p::before{min-width:84px}.ccard header .cc-st{margin-left:0;flex-basis:100%;order:2}}
+
+/* Cours sans chapitres pour l'instant */
+.chlist .ch-soon{padding:14px 12px;color:var(--muted);font-size:14px;font-style:italic}
+.grp .ch-soon{padding:6px 12px 8px 34px;color:var(--muted);font-size:13px;font-style:italic;list-style:none}
